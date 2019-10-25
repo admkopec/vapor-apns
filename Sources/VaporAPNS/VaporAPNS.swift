@@ -1,10 +1,8 @@
 import Dispatch
 import Foundation
-import SwiftString
-import JSON
 import CCurl
-import JSON
 import JWT
+import Crypto
 import Console
 
 
@@ -21,11 +19,11 @@ open class VaporAPNS {
         
         if !options.disableCurlCheck {
             if options.forceCurlInstall {
-                let curlupdater = CurlUpdater()
-                curlupdater.updateCurl()
+//                let curlupdater = CurlUpdater()
+//                curlupdater.updateCurl()
             } else {
-                let curlVersionChecker = CurlVersionHelper()
-                curlVersionChecker.checkVersion()
+//                let curlVersionChecker = CurlVersionHelper()
+//                curlVersionChecker.checkVersion()
             }
         }
         
@@ -75,8 +73,8 @@ open class VaporAPNS {
         // Use CURLOPT_COPYPOSTFIELDS so Swift can release str and let CURL take
         // care of the rest. This implies we need to set CURLOPT_POSTFIELDSIZE
         // first
-        let serialized = try! message.payload.makeJSON().serialize(prettyPrint: false)
-        let str = String(bytes: serialized)
+        let serialized = try! message.payload.makeJSON()
+        guard let str = String(bytes: serialized, encoding: .utf8) else { return nil }
         curlHelperSetOptInt(handle, CURLOPT_POSTFIELDSIZE, str.utf8.count)
         curlHelperSetOptString(handle, CURLOPT_COPYPOSTFIELDS, str.cString(using: .utf8))
         
@@ -91,28 +89,21 @@ open class VaporAPNS {
             if let recentToken = lastGeneratedToken, abs(recentToken.date.timeIntervalSinceNow) < 59 * 60 {
                 token = recentToken.token
             } else {
-                let privateKey = options.privateKey!.bytes.base64Decoded
-                let claims: [Claim] = [
-                    IssuerClaim(string: options.teamId!),
-                    IssuedAtClaim()
-                ]
-                let jwt = try! JWT(additionalHeaders: [KeyID(options.keyId!)],
-                                   payload: JSON(claims),
-                                   signer: ES256(key: privateKey))
+                let privateKey = Data(options.privateKey!.utf8)//options.privateKey!.bytes.base64Decoded
                 
-                let tokenString = try! jwt.createToken()
-                
-                let publicKey = options.publicKey!.bytes.base64Decoded
+                let signer = JWTSigner(algorithm: ES256(key: privateKey))
+                let jwt = JWT(header: JWTHeader(alg: "ES256", typ: nil, cty: nil, crit: nil, kid: options.keyId!), payload: APNSJWTPayload(iss: IssuerClaim(value: options.teamId!)))
+//                let jwt = try! JWT(additionalHeaders: [:],
+//                                   payload: APNSJWTPayload(iss: IssuerClaim(value: options.teamId!)),
+//                                   signer: ES256(key: privateKey))
+                let signed = try! jwt.sign(using: signer)
+
+                guard let tokenString = String(bytes: signed, encoding: .utf8) else { return nil }
+                                
+                let publicKey = Data(options.publicKey!.utf8)//options.publicKey!.bytes.base64Decoded
                 
                 do {
-                    let jwt2 = try JWT(token: tokenString)
-                    do {
-                        try jwt2.verifySignature(using: ES256(key: publicKey))
-                    } catch {
-                        // If we fail here, its an invalid signature
-                        //                    return Result.error(apnsId: message.messageId, deviceToken: deviceToken, error: .invalidSignature)
-                    }
-                    
+                    let jwt2 = try JWT<APNSJWTPayload>(unverifiedFrom: signed)
                 } catch {
                     print ("Couldn't verify token. This is a non-fatal error, we'll try to send the notification anyway.")
                     if options.debugLogging {
@@ -188,7 +179,9 @@ open class VaporAPNS {
             curl_easy_cleanup(handle)
         }
         
-        var hashValue: Int { return messageId.hashValue }
+        func hash(into hasher: inout Hasher) {
+            return messageId.hash(into: &hasher)
+        }
         
         static func == (lhs: Connection, rhs: Connection) -> Bool {
             return lhs.messageId == rhs.messageId && lhs.token == rhs.token
@@ -383,14 +376,6 @@ extension VaporAPNS {
         } else {
             return "https://api.push.apple.com" //   /3/device/"
         }
-    }
-}
-
-struct KeyID: Header {
-    static let name = "kid"
-    var node: Node
-    init(_ keyID: String) {
-        node = Node(keyID)
     }
 }
 

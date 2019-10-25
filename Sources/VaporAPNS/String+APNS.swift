@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import CLibreSSL
+import CCryptoOpenSSL
 import Core
 
 extension String {
@@ -26,15 +26,10 @@ extension String {
         
         // Fold p8 file and write it back to the file
         let fileString = try String.init(contentsOfFile: self, encoding: .utf8)
-        guard
-            let privateKeyString =
-            fileString.collapseWhitespace().trimmingCharacters(in: .whitespaces).between(
-                "-----BEGIN PRIVATE KEY-----",
-                "-----END PRIVATE KEY-----"
-                )?.trimmingCharacters(in: .whitespaces)
-            else {
-                throw TokenError.invalidTokenString
-        }
+        let splitted = fileString.components(separatedBy: "-----BEGIN PRIVATE KEY-----")
+        guard splitted.count >= 1 else { throw TokenError.invalidTokenString }
+        guard let splittedKey = splitted[1].components(separatedBy: "-----END PRIVATE KEY-----").first else { throw TokenError.invalidTokenString }
+        let privateKeyString = splittedKey.trimmingCharacters(in: .whitespaces)
         let splittedText = privateKeyString.splitByLength(64)
         let newText = "-----BEGIN PRIVATE KEY-----\n\(splittedText.joined(separator: "\n"))\n-----END PRIVATE KEY-----"
         try newText.write(toFile: self, atomically: false, encoding: .utf8)
@@ -56,13 +51,13 @@ extension String {
         let pub_len = i2o_ECPublicKey(ecKey, &pub)
         var publicKey = ""
         if let pub = pub {
-            var publicBytes = Bytes(repeating: 0, count: Int(pub_len))
+            var publicBytes = Data(repeating: 0, count: Int(pub_len))
             for i in 0..<Int(pub_len) {
-                publicBytes[i] = Byte(pub[i])
+                publicBytes[i] = pub[i]
             }
-            let publicData = Data(bytes: publicBytes)
+            let publicData = publicBytes
 //            print("public key: \(publicData.hexString)")
-            publicKey = publicData.hexString
+            publicKey = publicData.hexString()
         } else {
             publicKey = ""
         }
@@ -75,11 +70,11 @@ extension String {
 //        print (privateKey)
         let privData = privateKey.dataFromHexadecimalString()!
         
-        let privBase64String = String(bytes: privData.base64Encoded)
+        let privBase64String = privData.base64EncodedString()
         
         
         let pubData = publicKey.dataFromHexadecimalString()!
-        let pubBase64String = String(bytes: pubData.base64Encoded)
+        let pubBase64String = pubData.base64EncodedString()
         
         return (privBase64String, pubBase64String)
     }
@@ -92,10 +87,10 @@ extension String {
     /// - returns: Data represented by this hexadecimal string.
     
     func dataFromHexadecimalString() -> Data? {
-        var data = Data(capacity: characters.count / 2)
+        var data = Data(capacity: self.count / 2)
         
         let regex = try! NSRegularExpression(pattern: "[0-9a-f]{1,2}", options: .caseInsensitive)
-        regex.enumerateMatches(in: self, options: [], range: NSMakeRange(0, characters.count)) { match, flags, stop in
+        regex.enumerateMatches(in: self, options: [], range: NSMakeRange(0, self.count)) { match, flags, stop in
             let range = self.range(from: match!.range)
             let byteString = self.substring(with: range!)
             var num = UInt8(byteString, radix: 16)
@@ -111,7 +106,7 @@ extension String {
         collectedCharacters.reserveCapacity(length)
         var count = 0
         
-        for character in self.characters {
+        for character in self {
             collectedCharacters.append(character)
             count += 1
             if (count == length) {

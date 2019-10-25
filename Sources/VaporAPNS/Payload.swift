@@ -7,10 +7,9 @@
 //
 
 import Foundation
-import JSON
 import Core
 
-open class Payload: JSONRepresentable {
+open class Payload {
     /// The number to display as the badge of the app icon.
     public var badge: Int?
     
@@ -57,21 +56,21 @@ open class Payload: JSONRepresentable {
     public var threadId: String?
 
     // Any extra key-value pairs to add to the JSON
-    public var extra: [String: NodeRepresentable] = [:]
+    public var extra: [String: Any] = [:]
     
     // Simple, empty initializer
     public init() {}
     
-    open func makeJSON() throws -> JSON {
-        var payloadData: [String: NodeRepresentable] = [:]
-        var apsPayloadData: [String: NodeRepresentable] = [:]
+    open func makeJSON() throws -> Data {
+        var payloadData: [String: Any] = [:]
+        var apsPayloadData: [String: Any] = [:]
         
         if contentAvailable {
             apsPayloadData["content-available"] = true
         } else {
             
             // Create alert dictionary
-            var alert: [String: NodeRepresentable] = [:]
+            var alert: [String: Encodable] = [:]
             
             if let title = title {
                 alert["title"] = title
@@ -81,7 +80,7 @@ open class Payload: JSONRepresentable {
                 alert["title-loc-key"] = titleLocKey
                 
                 if let titleLocArgs = titleLocArgs {
-                    alert["title-loc-args"] = try titleLocArgs.makeNode(in: nil)
+                    alert["title-loc-args"] = titleLocArgs
                 }
             }
             
@@ -96,7 +95,7 @@ open class Payload: JSONRepresentable {
                     alert["loc-key"] = bodyLocKey
                     
                     if let bodyLocArgs = bodyLocArgs {
-                        alert["loc-args"] = try bodyLocArgs.makeNode(in: nil)
+                        alert["loc-args"] = bodyLocArgs
                     }
                 }
             }
@@ -110,7 +109,7 @@ open class Payload: JSONRepresentable {
             }
             // Alert dictionary created
             
-            apsPayloadData["alert"] = try alert.makeNode(in: nil)
+            apsPayloadData["alert"] = alert
             
             if let badge = badge {
                 apsPayloadData["badge"] = badge
@@ -134,29 +133,28 @@ open class Payload: JSONRepresentable {
             
         }
         
-        payloadData["aps"] = try apsPayloadData.makeNode(in: nil)
+        payloadData["aps"] = apsPayloadData
         for (key, value) in extra {
             payloadData[key] = value
         }
         
-        let json = JSON(node: try payloadData.makeNode(in: nil))
-        return json
+        return try JSONSerialization.data(withJSONObject: payloadData, options: .init(rawValue: 0))
     }
 }
 
 public extension Payload {
-    public convenience init(message: String) {
+    convenience init(message: String) {
         self.init()
         self.body = message
     }
     
-    public convenience init(title: String, body: String) {
+    convenience init(title: String, body: String) {
         self.init()
         self.title = title
         self.body = body
     }
     
-    public convenience init(title: String, body: String, badge: Int) {
+    convenience init(title: String, body: String, badge: Int) {
         self.init()
         self.title = title
         self.body = body
@@ -165,7 +163,7 @@ public extension Payload {
     
     
     /// A simple, already made, Content-Available payload
-    public static var contentAvailable: Payload {
+    static var contentAvailable: Payload {
         let payload = Payload()
         payload.contentAvailable = true
         return payload

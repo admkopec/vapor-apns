@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import JSON
 
 /// Apple Push Notification Message
 public struct ApplePushMessage {

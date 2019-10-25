@@ -7,10 +7,9 @@
 //
 
 import Foundation
-import Node
 
 /// Specific configuration options to be passed to `VaporAPNS`
-public struct Options: CustomStringConvertible, NodeInitializable {
+public struct Options: CustomStringConvertible {
     public enum Port: Int {
         case p443 = 443, p2197 = 2197
     }
@@ -96,40 +95,40 @@ public struct Options: CustomStringConvertible, NodeInitializable {
     }
 
     
-    public init(node: Node) throws {
-        guard let topic = node["topic"]?.string else {
-            throw InitializeError.noTopic
-        }
-        self.topic = topic
-        
-        if let portRaw = node["port"]?.int, let port = Port(rawValue: portRaw) {
-            self.port = port
-        }
-        
-        var hasAuthentication = false
-        
-        if let privateKeyLocation = node["keyPath"]?.string, let keyId = node["keyId"]?.string {
-            hasAuthentication = true
-            let (priv, pub) = try privateKeyLocation.tokenString()
-            self.privateKey = priv
-            self.publicKey = pub
-            self.keyId = keyId
-        }
-
-        if let certPath = node["certificatePath"]?.string, let keyPath = node["keyPath"]?.string {
-            if hasAuthentication {
-                print ("You've seem to have specified both authentication methods, choosing preferred APNS Auth Key method...")
-            } else {
-                hasAuthentication = true
-                self.certPath = certPath
-                self.keyPath = keyPath
-            }
-        }
-        
-        guard hasAuthentication else {
-            throw InitializeError.noAuthentication
-        }
-    }
+//    public init(node: Node) throws {
+//        guard let topic = node["topic"]?.string else {
+//            throw InitializeError.noTopic
+//        }
+//        self.topic = topic
+//
+//        if let portRaw = node["port"]?.int, let port = Port(rawValue: portRaw) {
+//            self.port = port
+//        }
+//
+//        var hasAuthentication = false
+//
+//        if let privateKeyLocation = node["keyPath"]?.string, let keyId = node["keyId"]?.string {
+//            hasAuthentication = true
+//            let (priv, pub) = try privateKeyLocation.tokenString()
+//            self.privateKey = priv
+//            self.publicKey = pub
+//            self.keyId = keyId
+//        }
+//
+//        if let certPath = node["certificatePath"]?.string, let keyPath = node["keyPath"]?.string {
+//            if hasAuthentication {
+//                print ("You've seem to have specified both authentication methods, choosing preferred APNS Auth Key method...")
+//            } else {
+//                hasAuthentication = true
+//                self.certPath = certPath
+//                self.keyPath = keyPath
+//            }
+//        }
+//
+//        guard hasAuthentication else {
+//            throw InitializeError.noAuthentication
+//        }
+//    }
     
     public var description: String {
         return
