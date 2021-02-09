@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION="3.1"
+VERSION="5.3"
 echo "Swift $VERSION Continuous Integration";
 
 # Determine OS
@@ -12,11 +12,11 @@ else
     if [[ $UNAME == "Linux" ]];
     then
         UBUNTU_RELEASE=`lsb_release -a 2>/dev/null`;
-        if [[ $UBUNTU_RELEASE == *"15.10"* ]];
+        if [[ $UBUNTU_RELEASE == *"20.04"* ]];
         then
-            OS="ubuntu1510";
+            OS="ubuntu2004";
         else
-            OS="ubuntu1404";
+            OS="ubuntu1804";
         fi
     else
         echo "Unsupported Operating System: $UNAME";
@@ -30,11 +30,11 @@ then
     sudo apt-get install -y clang libicu-dev uuid-dev
 
     echo "🐦 Installing Swift";
-    if [[ $OS == "ubuntu1510" ]];
+    if [[ $OS == "ubuntu2004" ]];
     then
-        SWIFTFILE="swift-$VERSION-RELEASE-ubuntu15.10";
+        SWIFTFILE="swift-$VERSION-RELEASE-ubuntu20.04";
     else
-        SWIFTFILE="swift-$VERSION-RELEASE-ubuntu14.04";
+        SWIFTFILE="swift-$VERSION-RELEASE-ubuntu18.04";
     fi
     wget https://swift.org/builds/swift-$VERSION-release/$OS/swift-$VERSION-RELEASE/$SWIFTFILE.tar.gz
     tar -zxf $SWIFTFILE.tar.gz
