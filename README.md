@@ -2,12 +2,12 @@
 
 # VaporAPNS
 
-![Swift](http://img.shields.io/badge/swift-3.1-brightgreen.svg)
+![Swift](http://img.shields.io/badge/swift-5.1-brightgreen.svg)
 ![Vapor](https://img.shields.io/badge/Vapor-3.0-green.svg)
 [![Crates.io](https://img.shields.io/crates/l/rustc-serialize.svg?maxAge=2592000)]()
 [![Build Status](https://travis-ci.org/matthijs2704/vapor-apns.svg?branch=master)](https://travis-ci.org/matthijs2704/vapor-apns)
 
-VaporAPNS is a simple, yet elegant, Swift library that allows you to send Apple Push Notifications using HTTP/2 protocol in Linux & macOS. It has support for the brand-new [Token Based Authentication](https://developer.apple.com/videos/play/wwdc2016/724/) but if you need it, the traditional certificate authentication method is ready for you to use as well. Choose whatever you like!
+VaporAPNS is a simple, yet elegant, Swift library that allows you to send Apple Push Notifications using HTTP/2 protocol in Linux & macOS. It has support for the recommended [Token Based Authentication](https://developer.apple.com/videos/play/wwdc2016/724/) but if you need it, the traditional certificate authentication method is available for you to use as well. Choose whichever you like!
 
 ## 🚀 Installation and Usage
 
@@ -23,7 +23,7 @@ Be welcome to contribute to this project! :)
 
 ## ❓ Questions
 
-You can join the Vapor [slack](http://vapor.team). Or you can create an issue on GitHub.
+You can create an issue here, on GitHub.
 
 ## ⭐ License
 
