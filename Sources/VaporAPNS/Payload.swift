@@ -107,9 +107,11 @@ open class Payload {
             if let launchImage = launchImage {
                 alert["launch-image"] = launchImage
             }
-            // Alert dictionary created
             
-            apsPayloadData["alert"] = alert
+            // Alert dictionary created
+            if !alert.isEmpty {
+                apsPayloadData["alert"] = alert
+            }
             
             if let badge = badge {
                 apsPayloadData["badge"] = badge
@@ -133,7 +135,9 @@ open class Payload {
             
         }
         
-        payloadData["aps"] = apsPayloadData
+        if !apsPayloadData.isEmpty {
+            payloadData["aps"] = apsPayloadData
+        }
         for (key, value) in extra {
             payloadData[key] = value
         }

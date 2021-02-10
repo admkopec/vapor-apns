@@ -24,16 +24,15 @@ extension String {
             throw TokenError.invalidAuthKey
         }
         
-        // Fold p8 file and write it back to the file
-        let fileString = try String.init(contentsOfFile: self, encoding: .utf8)
-        let splitted = fileString.components(separatedBy: "-----BEGIN PRIVATE KEY-----")
-        guard splitted.count >= 1 else { throw TokenError.invalidTokenString }
-        guard let splittedKey = splitted[1].components(separatedBy: "-----END PRIVATE KEY-----").first else { throw TokenError.invalidTokenString }
-        let privateKeyString = splittedKey.trimmingCharacters(in: .whitespaces)
-        let splittedText = privateKeyString.splitByLength(64)
-        let newText = "-----BEGIN PRIVATE KEY-----\n\(splittedText.joined(separator: "\n"))\n-----END PRIVATE KEY-----"
-        try newText.write(toFile: self, atomically: false, encoding: .utf8)
-        
+//        // Fold p8 file and write it back to the file
+//        let fileString = try String.init(contentsOfFile: self, encoding: .utf8)
+//        let splitted = fileString.components(separatedBy: "-----BEGIN PRIVATE KEY-----")
+//        guard splitted.count >= 1 else { throw TokenError.invalidTokenString }
+//        guard let splittedKey = splitted[1].components(separatedBy: "-----END PRIVATE KEY-----").first else { throw TokenError.invalidTokenString }
+//        let privateKeyString = splittedKey.trimmingCharacters(in: .whitespaces)
+//        let splittedText = privateKeyString.splitByLength(64)
+//        let newText = "-----BEGIN PRIVATE KEY-----\n\(splittedText.joined(separator: "\n"))\n-----END PRIVATE KEY-----"
+//        try newText.write(toFile: self, atomically: false, encoding: .utf8)
         
         var pKey = EVP_PKEY_new()
         
@@ -56,7 +55,6 @@ extension String {
                 publicBytes[i] = pub[i]
             }
             let publicData = publicBytes
-//            print("public key: \(publicData.hexString)")
             publicKey = publicData.hexString()
         } else {
             publicKey = ""
@@ -67,7 +65,6 @@ extension String {
         
         let privateKey = "00\(String.init(validatingUTF8: privKeyBigNum!)!)"
         
-//        print (privateKey)
         let privData = privateKey.dataFromHexadecimalString()!
         
         let privBase64String = privData.base64EncodedString()
@@ -92,7 +89,7 @@ extension String {
         let regex = try! NSRegularExpression(pattern: "[0-9a-f]{1,2}", options: .caseInsensitive)
         regex.enumerateMatches(in: self, options: [], range: NSMakeRange(0, self.count)) { match, flags, stop in
             let range = self.range(from: match!.range)
-            let byteString = self.substring(with: range!)
+            let byteString = self[range!]
             var num = UInt8(byteString, radix: 16)
             data.append(&num!, count: 1)
         }
