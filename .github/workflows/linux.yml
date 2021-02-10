@@ -13,8 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Fetch libcurl
-      run: sudo apt-get install libcurl4-openssl-dev
+    - name: Fetch libs
+      run: sudo apt-get install libcurl4-openssl-dev && sudo apt-get install libssl-dev
     - name: Build
       run: swift build -v
     - name: Run tests
