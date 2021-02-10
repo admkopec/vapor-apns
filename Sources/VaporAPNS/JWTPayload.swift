@@ -8,9 +8,9 @@ import Foundation
 import JWT
 
 struct APNSJWTPayload: JWTPayload {
-    let iss: IssuerClaim
-    let iat = IssuedAtClaim(value: Date())
-    let exp = ExpirationClaim(value: Date(timeInterval: 3500, since: Date()))
+    var iss: IssuerClaim
+    var iat = IssuedAtClaim(value: Date())
+    var exp = ExpirationClaim(value: Date(timeInterval: 3500, since: Date()))
     
     func verify(using signer: JWTSigner) throws {
         try self.exp.verifyNotExpired()
