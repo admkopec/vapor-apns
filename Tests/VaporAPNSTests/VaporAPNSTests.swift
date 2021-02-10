@@ -28,19 +28,18 @@ class VaporAPNSTests: XCTestCase {
         }
     }
     
+    struct TestPayload: JWTPayload {
+        var iss = IssuerClaim(value: "D86BEC0E8B")
+        var iat = IssuedAtClaim(value: Date())
+        
+        func verify(using signer: JWTSigner) throws { }
+    }
+    
     func testEncoding() throws {
-        let claims: [Claim] = [IssuerClaim(string: "D86BEC0E8B"), IssuedAtClaim()]
-        let claimsNode = Node(claims)
-        let jwt = try! JWT(
-            additionalHeaders: [KeyID("E811E6AE22")],
-            payload: claimsNode.converted(to: JSON.self),
-            signer: ES256(key: "ALEILVyGWnbBaSaIFDsh0yoZaK+Ej0po/55jG2FR6u6C".bytes.base64Decoded))
-
-        let tokenString = try! jwt.createToken()
-
+        // additionalHeaders: ["E811E6AE22"]
+        let tokenString = try JWT(payload: TestPayload()).sign(using: .es256(key: "ALEILVyGWnbBaSaIFDsh0yoZaK+Ej0po/55jG2FR6u6C"))
         do {
-            let jwt2 = try JWT(token: tokenString)
-            try jwt2.verifySignature(using: ES256(key: "BKqKwB6hpXp9SzWGt3YxnHgCEkcbS+JSrhoqkeqru/Nf62MeE958RIiKYsLFA/czdE7ThCt46azneU0IBnMCuQU=".bytes.base64Decoded))
+            _ = try JWT<TestPayload>(from: tokenString, verifiedUsing: .es256(key: "BKqKwB6hpXp9SzWGt3YxnHgCEkcbS+JSrhoqkeqru/Nf62MeE958RIiKYsLFA/czdE7ThCt46azneU0IBnMCuQU="))
         } catch {
             XCTFail("Couldn't verify token, failed with error: \(error)")
         }

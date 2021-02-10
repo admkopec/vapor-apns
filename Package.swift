@@ -12,6 +12,7 @@ let package = Package(
         .package(url: "https://github.com/toto/CCurl.git", from: "0.4.0")
     ],
     targets: [
-        .target(name: "VaporAPNS", dependencies: ["CCurl", "Console", "JWT"])
+        .target(name: "VaporAPNS", dependencies: ["CCurl", "Console", "JWT"]),
+        .testTarget(name: "VaporAPNSTests", dependencies: ["VaporAPNS"])
     ]
 )

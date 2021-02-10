@@ -27,7 +27,7 @@ public enum JWTError: Error {
     case unknown(Error)
 }
 
-public final class ES256: JWTAlgorithm {
+public final class ES256 {
     internal let curve = NID_X9_62_prime256v1
     internal let key: Data
     
@@ -39,37 +39,37 @@ public final class ES256: JWTAlgorithm {
         self.key = key
     }
     
+    // Returns DER Encoded signature
     public func sign(_ plaintext: LosslessDataConvertible) throws -> Data {
         let digest = Bytes(try SHA256.hash(plaintext))
         let ecKey = try self.newECKeyPair()
-        
-        guard let signature = ECDSA_do_sign(digest, Int32(digest.count), ecKey) else {
-            throw JWTError.signing
+        defer { EC_KEY_free(ecKey) }
+        var derEncodedSignature = Data(count: Int(ECDSA_size(ecKey)))
+        var derLength: UInt32 = 0
+        try derEncodedSignature.withUnsafeMutableBytes { derBytes throws -> Void in
+            guard ECDSA_sign(0, digest, Int32(digest.count), derBytes.bindMemory(to: UInt8.self).baseAddress, &derLength, ecKey) == 1 else {
+                throw JWTError.signing
+            }
         }
-        
-        var derEncodedSignature: UnsafeMutablePointer<UInt8>? = nil
-        let derLength = i2d_ECDSA_SIG(signature, &derEncodedSignature)
-        guard let derCopy = derEncodedSignature, derLength > 0 else {
-            throw JWTError.signing
-        }
-        
-        var derBytes = [UInt8](repeating: 0, count: Int(derLength))
-        for b in 0..<Int(derLength) {
-            derBytes[b] = derCopy[b]
-        }
-        return Data(derBytes)
+        return derEncodedSignature
     }
     
+    // Verifies DER Encoded signature
     public func verify(_ signature: Data, signs plaintext: Data) throws -> Bool {
-        var signaturePointer: UnsafePointer? = UnsafePointer(Bytes(signature))
-        let signature = d2i_ECDSA_SIG(nil, &signaturePointer, signature.count)
-        let digest = Bytes(try SHA256.hash(plaintext))
-        let ecKey = try self.newECPublicKey()
-        let result = ECDSA_do_verify(digest, Int32(digest.count), signature, ecKey)
-        if result == 1 {
+        var endIndex = signature.endIndex-1
+        while signature[endIndex] == 0 { endIndex -= 1 }
+        // Remove trailing zeros
+        var signatureBytes = Bytes(signature[0...endIndex])
+        return try signatureBytes.withUnsafeMutableBufferPointer { bytes -> Bool in
+            let digest = Bytes(try SHA256.hash(plaintext))
+            let ecKey = try self.newECPublicKey()
+            defer { EC_KEY_free(ecKey) }
+            
+            if ECDSA_verify(0, digest, Int32(digest.count), bytes.baseAddress, Int32(bytes.count), ecKey) == 1 {
+                return true
+            }
             return false
         }
-        return true
     }
     
     func newECKey() throws -> OpaquePointer {
@@ -80,13 +80,10 @@ public final class ES256: JWTAlgorithm {
     }
     
     func newECKeyPair() throws -> OpaquePointer {
-        var privateNum = BIGNUM()
-        
         // Set private key
-        BN_init(&privateNum)
-        BN_bin2bn(Bytes(key), Int32(key.count), &privateNum)
+        let privateNum = BN_bin2bn(Bytes(key), Int32(key.count), nil)
         let ecKey = try newECKey()
-        EC_KEY_set_private_key(ecKey, &privateNum)
+        EC_KEY_set_private_key(ecKey, privateNum)
         
         // Derive public key
         let context = BN_CTX_new()
@@ -94,26 +91,40 @@ public final class ES256: JWTAlgorithm {
         
         let group = EC_KEY_get0_group(ecKey)
         let publicKey = EC_POINT_new(group)
-        EC_POINT_mul(group, publicKey, &privateNum, nil, nil, context)
+        EC_POINT_mul(group, publicKey, privateNum, nil, nil, context)
         EC_KEY_set_public_key(ecKey, publicKey)
         
         // Release resources
         EC_POINT_free(publicKey)
         BN_CTX_end(context)
         BN_CTX_free(context)
-        BN_clear_free(&privateNum)
+        BN_clear_free(privateNum)
         
         return ecKey
     }
     
     func newECPublicKey() throws -> OpaquePointer {
         var ecKey: OpaquePointer? = try self.newECKey()
-        var publicBytesPointer: UnsafePointer? = UnsafePointer<UInt8>(Bytes(self.key))
-        
-        if let ecKey = o2i_ECPublicKey(&ecKey, &publicBytesPointer, self.key.count) {
-            return ecKey
-        } else {
-            throw JWTError.createPublicKey
+        var publicBytes = Bytes(self.key)
+        return try publicBytes.withUnsafeMutableBufferPointer { bytes -> OpaquePointer in
+            var publicBytesPointer = UnsafePointer(bytes.baseAddress)
+            if let ecKey = o2i_ECPublicKey(&ecKey, &publicBytesPointer, self.key.count) {
+                return ecKey
+            } else {
+                throw JWTError.createPublicKey
+            }
         }
+    }
+}
+
+extension JWTSigner {
+    /// Creates an ES256 JWT signer that handles DER encoded signature with the supplied key in base64
+    public static func es256(key: String) -> JWTSigner {
+        let alg = CustomJWTAlgorithm(name: "ES256", sign: { plaintext in
+            return try ES256(key: Data(base64Encoded: key)!).sign(plaintext)
+        }, verify: { signature, plaintext in
+            return try ES256(key: Data(base64Encoded: key)!).verify(signature.convertToData(), signs: plaintext.convertToData())
+        })
+        return .init(algorithm: alg)
     }
 }

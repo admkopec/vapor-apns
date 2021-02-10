@@ -89,21 +89,16 @@ open class VaporAPNS {
             if let recentToken = lastGeneratedToken, abs(recentToken.date.timeIntervalSinceNow) < 59 * 60 {
                 token = recentToken.token
             } else {
-                let privateKey = Data(options.privateKey!.utf8)//options.privateKey!.bytes.base64Decoded
+                //let privateKey = Data(options.privateKey!.utf8)//options.privateKey!.bytes.base64Decoded
+                //let publicKey = Data(options.publicKey!.utf8)//options.publicKey!.bytes.base64Decoded
                 
-                let signer = JWTSigner(algorithm: ES256(key: privateKey))
                 let jwt = JWT(header: JWTHeader(alg: "ES256", typ: nil, cty: nil, crit: nil, kid: options.keyId!), payload: APNSJWTPayload(iss: IssuerClaim(value: options.teamId!)))
-//                let jwt = try! JWT(additionalHeaders: [:],
-//                                   payload: APNSJWTPayload(iss: IssuerClaim(value: options.teamId!)),
-//                                   signer: ES256(key: privateKey))
-                let signed = try! jwt.sign(using: signer)
+                let signed = try! jwt.sign(using: .es256(key: options.privateKey!))
 
                 guard let tokenString = String(bytes: signed, encoding: .utf8) else { return nil }
-                                
-                let publicKey = Data(options.publicKey!.utf8)//options.publicKey!.bytes.base64Decoded
                 
                 do {
-                    let jwt2 = try JWT<APNSJWTPayload>(unverifiedFrom: signed)
+                    _ = try JWT<APNSJWTPayload>(from: signed, verifiedUsing: .es256(key: options.publicKey!))
                 } catch {
                     print ("Couldn't verify token. This is a non-fatal error, we'll try to send the notification anyway.")
                     if options.debugLogging {
