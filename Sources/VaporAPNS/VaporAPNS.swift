@@ -4,9 +4,10 @@ import CCurl
 import JWT
 import Crypto
 import Console
+import Service
 
 
-open class VaporAPNS {
+open class VaporAPNS: Service {
     
     fileprivate var options: Options
     private var lastGeneratedToken: (date: Date, token: String)?
