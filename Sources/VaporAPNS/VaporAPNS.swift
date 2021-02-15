@@ -54,7 +54,7 @@ open class VaporAPNS: Service {
         
         curlHelperSetOptInt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0)
         
-        let url = ("\(self.hostURL(message.sandbox))/3/device/\(deviceToken)")
+        let url = self.hostURL(message.sandbox, token: deviceToken)
         curlHelperSetOptString(handle, CURLOPT_URL, url)
         
         // force set port to 443
@@ -366,11 +366,11 @@ open class VaporAPNS: Service {
 }
 
 extension VaporAPNS {
-    fileprivate func hostURL(_ development: Bool) -> String {
+    fileprivate func hostURL(_ development: Bool, token deviceToken: String) -> String {
         if development {
-            return "https://api.development.push.apple.com" //   "
+            return "https://api.sandbox.push.apple.com/3/device/\(deviceToken)"
         } else {
-            return "https://api.push.apple.com" //   /3/device/"
+            return "https://api.push.apple.com/3/device/\(deviceToken)"
         }
     }
 }
