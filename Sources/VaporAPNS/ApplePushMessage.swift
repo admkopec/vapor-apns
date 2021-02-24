@@ -19,6 +19,26 @@ public struct ApplePushMessage {
 
     public let expirationDate: Date?
     
+    /// APNS Type
+    public let type: NotififcationType
+    
+    /// Push notification type
+    ///
+    /// - alert: Default type for push notifications, for use with alerts, banners and badges.
+    /// - background: Push notification type for background refresh notifications.
+    /// - voip: Push notification type for PushKit VoIP notifications.
+    /// - complication: Push notification type for PushKit complication notifications, only available on watchOS.
+    /// - fileprovider: Push notification type for PushKit FileProvider refresh notifications.
+    /// - mdm: Push notification type for MDM device management notifications.
+    public enum NotififcationType: String {
+        case alert
+        case background
+        case voip
+        case complication
+        case fileprovider
+        case mdm
+    }
+    
     /// APNS Priority
     public let priority: Priority
     
@@ -37,8 +57,9 @@ public struct ApplePushMessage {
     /// Use sandbox server URL or not
     public let sandbox:Bool
     
-    public init(topic: String? = nil, priority: Priority, expirationDate: Date? = nil, payload: Payload, sandbox:Bool = true, collapseIdentifier: String? = nil) {
+    public init(topic: String? = nil, type: NotififcationType = .alert, priority: Priority, expirationDate: Date? = nil, payload: Payload, sandbox:Bool = true, collapseIdentifier: String? = nil) {
         self.topic = topic
+        self.type = type
         self.priority = priority
         self.expirationDate = expirationDate
         self.payload = payload

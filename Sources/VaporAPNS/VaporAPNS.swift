@@ -132,6 +132,7 @@ open class VaporAPNS: Service {
         var headers: [String : String] = [
             "apns-id": message.messageId,
             "apns-expiration": "\(Int(message.expirationDate?.timeIntervalSince1970.rounded() ?? 0))",
+            "apns-push-type": "\(message.type.rawValue)",
             "apns-priority": "\(message.priority.rawValue)",
             "apns-topic": message.topic ?? options.topic
         ]
